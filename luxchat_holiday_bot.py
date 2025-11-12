@@ -1,28 +1,26 @@
-import json
 import re
 from datetime import datetime
+import holidays
 from matrix_client.client import MatrixClient
 
 # Configuration
 HOMESERVER_URL = "https://your-luxchat-homeserver.lu"  # Replace with your Luxchat server URL
 BOT_USERNAME = "@bot_username:your-luxchat-homeserver.lu"  # Replace with bot username
 BOT_PASSWORD = "your_bot_password"  # Replace with bot password
-HOLIDAYS_FILE = "holidays.json"  # Path to your holidays.json file
 
 class HolidayBot:
-    def __init__(self, homeserver, username, password, holidays_file):
+    def __init__(self, homeserver, username, password):
         self.client = MatrixClient(homeserver)
         self.username = username
         self.password = password
-        self.holidays = self.load_holidays(holidays_file)
         
-    def load_holidays(self, holidays_file):
-        """Load holidays from JSON file"""
+    def get_luxembourg_holidays(self, year):
+        """Get Luxembourg holidays for a specific year (always updated)"""
         try:
-            with open(holidays_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except FileNotFoundError:
-            print(f"Error: {holidays_file} not found!")
+            lu_holidays = holidays.Luxembourg(years=year)
+            return lu_holidays
+        except Exception as e:
+            print(f"Error fetching holidays: {e}")
             return {}
     
     def login(self):
@@ -50,10 +48,11 @@ class HolidayBot:
             if not date_obj:
                 return None, "Invalid date format. Please use YYYY-MM-DD or DD-MM-YYYY"
             
-            date_key = date_obj.strftime('%Y-%m-%d')
+            # Get holidays for that year
+            lu_holidays = self.get_luxembourg_holidays(date_obj.year)
             
-            if date_key in self.holidays:
-                return True, self.holidays[date_key]
+            if date_obj.date() in lu_holidays:
+                return True, lu_holidays[date_obj.date()]
             else:
                 return False, None
         except Exception as e:
@@ -63,19 +62,20 @@ class HolidayBot:
         """Get all holidays for a specific year"""
         try:
             year = int(year_str)
-            year_holidays = {date: name for date, name in self.holidays.items() 
-                           if date.startswith(str(year))}
+            lu_holidays = self.get_luxembourg_holidays(year)
             
-            if not year_holidays:
+            if not lu_holidays:
                 return "No holidays found for year " + year_str
             
-            response = f"Luxembourg holidays for {year}:\n\n"
-            for date, name in sorted(year_holidays.items()):
-                response += f"• {date}: {name}\n"
+            response = f"🇱🇺 Luxembourg public holidays for {year}:\n\n"
+            for date, name in sorted(lu_holidays.items()):
+                response += f"• {date.strftime('%d-%m-%Y')}: {name}\n"
             
             return response
         except ValueError:
             return "Invalid year format. Please provide a year (e.g., 2025)"
+        except Exception as e:
+            return f"Error fetching holidays: {str(e)}"
     
     def process_message(self, message_text):
         """Process incoming messages and return response"""
@@ -112,11 +112,12 @@ class HolidayBot:
         if 'help' in message_lower or 'holiday' in message_lower:
             return (
                 "🇱🇺 **Luxembourg Holiday Bot**\n\n"
-                "I can help you with Luxembourg holidays! Ask me:\n"
+                "I can help you with Luxembourg public holidays! Ask me:\n"
                 "• Is 25-12-2025 a holiday?\n"
                 "• Holidays in 2025\n"
                 "• 2025 holidays\n\n"
-                "Use dates in format: DD-MM-YYYY or YYYY-MM-DD"
+                "Supported date formats: DD-MM-YYYY, YYYY-MM-DD, DD.MM.YYYY\n\n"
+                "_Data source: Official Luxembourg government holidays_"
             )
         
         return None
@@ -127,12 +128,14 @@ class HolidayBot:
             return
         
         self.client.add_listener(self.on_message)
-        print("Bot is running. Press Ctrl+C to stop.")
+        print("Bot is running. Listening for messages...")
+        print("Data source: python-holidays library (always up-to-date)")
+        print("Press Ctrl+C to stop.")
         
         try:
             self.client.listen_forever()
         except KeyboardInterrupt:
-            print("Bot stopped.")
+            print("\nBot stopped.")
     
     def on_message(self, room, event):
         """Handle incoming messages"""
@@ -160,5 +163,5 @@ class HolidayBot:
 
 # Main execution
 if __name__ == "__main__":
-    bot = HolidayBot(HOMESERVER_URL, BOT_USERNAME, BOT_PASSWORD, HOLIDAYS_FILE)
+    bot = HolidayBot(HOMESERVER_URL, BOT_USERNAME, BOT_PASSWORD)
     bot.start()

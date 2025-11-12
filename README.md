@@ -13,7 +13,7 @@ A Python bot for Luxchat (Matrix protocol) that answers questions about Luxembou
 
 - Python 3.7 or higher
 - A Luxchat account with bot credentials
-- Holiday data file (`holidays.json` from Feierdeeg)
+- Internet connection (to fetch live government holiday data)
 
 ## Installation
 
@@ -28,26 +28,21 @@ cd luxchat-holiday-bot
 pip install -r requirements.txt
 ```
 
-### Step 3: Prepare Holiday Data
-1. Generate `holidays.json` using [Feierdeeg](https://github.com/luxgov/feierdeeg) tool
-2. Copy the generated `holidays.json` file to the project folder
-
-### Step 4: Configure Bot Credentials
+### Step 3: Configure Bot Credentials
 Edit `luxchat_holiday_bot.py` and update these lines with your Luxchat details:
 
 ```python
 HOMESERVER_URL = "https://your-luxchat-homeserver.lu"  # Your Luxchat server URL
 BOT_USERNAME = "@bot_username:your-luxchat-homeserver.lu"  # Bot username
 BOT_PASSWORD = "your_bot_password"  # Bot password
-HOLIDAYS_FILE = "holidays.json"  # Path to holidays.json
 ```
 
-### Step 5: Run the Bot
+### Step 4: Run the Bot
 ```bash
 python luxchat_holiday_bot.py
 ```
 
-The bot will login and start listening for messages.
+The bot will login and start listening for messages. Holiday data is automatically fetched from the official Luxembourg government database.
 
 ## Usage
 
@@ -90,10 +85,15 @@ luxchat-holiday-bot/
 └── .gitignore                 # Git ignore rules
 ```
 
-## Requirements
+## Data Source
 
-See `requirements.txt` for details:
-- `matrix-client==0.4.0` - Matrix protocol client for Python
+This bot uses the **python-holidays library** which automatically provides:
+- ✅ Official Luxembourg public holidays
+- ✅ Automatically updated annually
+- ✅ Connected to government holiday database
+- ✅ No manual updates needed
+
+The holiday data is maintained by the python-holidays community and reflects the official Luxembourg government holidays published at [luxembourg.public.lu](https://luxembourg.public.lu/en/vivre/quality-of-life/jours-feries-legaux.html)
 
 ## Troubleshooting
 
@@ -102,14 +102,15 @@ See `requirements.txt` for details:
 - Check if your bot account has the correct permissions
 - Ensure `HOMESERVER_URL` is correct
 
-### "holidays.json not found"
-- Make sure `holidays.json` is in the same folder as the script
-- Regenerate the file using Feierdeeg if needed
+### "No module named 'holidays'" Error
+- Install the holidays library: `pip install holidays`
+- Or reinstall dependencies: `pip install -r requirements.txt`
 
 ### Bot Not Responding
 - Check that the bot is running (no errors in console)
 - Make sure you mention the bot or it's a direct message
 - Verify the bot has permissions to send messages in the room
+- Check your internet connection (needed to fetch holiday data)
 
 ## License
 
